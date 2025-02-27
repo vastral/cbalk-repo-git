@@ -271,6 +271,36 @@
         .n8n-chat-widget .chat-footer a:hover {
             opacity: 1;
         }
+
+        /* Animación de los tres puntos cuando el chatbot está escribiendo */
+        .n8n-chat-widget .chat-message.bot.loading {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        }
+
+        .n8n-chat-widget .chat-message.bot.loading .dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--chat--color-font);
+        border-radius: 50%;
+        animation: blink 1.4s infinite both;
+        }
+
+        .n8n-chat-widget .chat-message.bot.loading .dot:nth-child(2) {
+        animation-delay: 0.2s;
+        }
+
+        .n8n-chat-widget .chat-message.bot.loading .dot:nth-child(3) {
+        animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+        0% { opacity: 0.2; }
+        20% { opacity: 1; }
+        100% { opacity: 0.2; }
+        }
+        
     `;
 
     // Load Geist font
@@ -405,7 +435,7 @@
                 userId: ""
             }
         }];
-
+    
         try {
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
@@ -414,21 +444,36 @@
                 },
                 body: JSON.stringify(data)
             });
-
+    
             const responseData = await response.json();
             chatContainer.querySelector('.brand-header').style.display = 'none';
             chatContainer.querySelector('.new-conversation').style.display = 'none';
             chatInterface.classList.add('active');
-
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
-            messagesContainer.appendChild(botMessageDiv);
+    
+            // Crear mensaje de carga con animación de puntos
+            const loadingMessage = document.createElement('div');
+            loadingMessage.className = 'chat-message bot loading';
+            loadingMessage.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span>`;
+            messagesContainer.appendChild(loadingMessage);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+            // Simulación de espera antes de la respuesta real
+            setTimeout(() => {
+                loadingMessage.remove(); // Eliminar mensaje de carga
+    
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.className = 'chat-message bot';
+                botMessageDiv.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
+    
+                messagesContainer.appendChild(botMessageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 500); // Pequeña pausa para dar sensación de carga
+    
         } catch (error) {
             console.error('Error:', error);
         }
     }
+    
 
     async function sendMessage(message) {
         const messageData = {
@@ -460,9 +505,17 @@
             
             const botMessageDiv = document.createElement('div');
             botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = Array.isArray(data) ? data[0].output : data.output;
+
+            // Verifica si es el primer mensaje vacío
+            if (messagesContainer.querySelectorAll('.chat-message.bot').length === 0) {
+                botMessageDiv.textContent = "Dime en qué puedo ayudarte 😊"; // Mensaje personalizado para la primera burbuja
+            } else {
+                botMessageDiv.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
+            }
+
             messagesContainer.appendChild(botMessageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
         } catch (error) {
             console.error('Error:', error);
         }
